@@ -1,5 +1,5 @@
 # ==============================================================================
-# Complete and Correct Code for Prompt.py (v2.1 - Renamed)
+# Complete and Correct Code for Prompt.py (v2.2 - With Error Handling Fix)
 # Using "Focused Studio" UI
 # ==============================================================================
 import streamlit as st
@@ -9,7 +9,7 @@ from openai import OpenAI, RateLimitError
 # --- Page Configuration (MUST be the first Streamlit command) ---
 st.set_page_config(
     layout="wide",
-    page_title="LDK Prompt", # <-- UPDATED NAME
+    page_title="LDK Prompt",
     page_icon="✨"
 )
 
@@ -37,12 +37,6 @@ def load_css():
 
 load_css()
 
-# NOTE: This section is for local testing. In production on Streamlit Cloud,
-# you should remove these lines and use Secrets management.
-# AI_API_KEY = "sk-e0b24d8af1fe456a875f3d95186e11b7"
-# AI_BASE_URL = "https://api.deepseek.com/v1"
-# AI_MODEL_NAME = "deepseek-chat"
-
 # --- API Configuration & Helper Functions ---
 try:
     # Initialize OpenAI Client using Streamlit Secrets
@@ -52,6 +46,8 @@ try:
     )
 except (FileNotFoundError, KeyError):
     st.sidebar.error("⚠️ AI_API_KEY or AI_BASE_URL not found in secrets.")
+    st.sidebar.info("Please add your API Key and Base URL to the Streamlit Secrets manager.")
+    st.stop() # <-- IMPORTANT FIX: Stop the app if secrets are not found
 
 # --- ✨ REWRITTEN FUNCTION FOR OPENAI COMPATIBLE APIS ---
 def call_openai_compatible_api(character, setting, lighting, action_emotion, camera, style):
@@ -107,8 +103,8 @@ def call_openai_compatible_api(character, setting, lighting, action_emotion, cam
 
 # --- SIDEBAR (Control Panel for "Focused Studio" UI) ---
 with st.sidebar:
-    st.title("✨ LDK Prompt") # <-- UPDATED NAME
-    st.caption("v2.1 - OpenAI Compatible") 
+    st.title("✨ LDK Prompt") 
+    st.caption("v2.2 - Error Fix") # <-- Updated version
     
     with st.form("control_panel_form"):
         st.header("1. Your Simple Ideas")
@@ -132,26 +128,23 @@ with st.sidebar:
 
 
 # --- MAIN CONTENT AREA (Output Zone) ---
-st.header("🎬 LDK Enhanced Prompt") # <-- UPDATED NAME
+st.header("🎬 LDK Enhanced Prompt") 
 
 if submit_button:
+    # This button logic will now only run if the app hasn't stopped due to missing secrets
     if not all([character, setting, action_emotion]):
         st.error("Please fill in at least the 'Character', 'Setting', and 'Action & Emotion' fields.")
     else:
-        # Check if secrets are loaded
-        if "AI_API_KEY" not in st.secrets or "AI_BASE_URL" not in st.secrets or "AI_MODEL_NAME" not in st.secrets:
-             st.error("Please configure your API Key, Base URL, and Model Name in Streamlit Secrets.")
-        else:
-            with st.spinner('✨ The AI is enhancing your ideas...'):
-                enhanced_output = call_openai_compatible_api(character, setting, lighting, action_emotion, camera, style)
+        with st.spinner('✨ The AI is enhancing your ideas...'):
+            enhanced_output = call_openai_compatible_api(character, setting, lighting, action_emotion, camera, style)
 
-            if enhanced_output:
-                st.subheader("✅ AI Generation Complete!")
-                final_prompt_text = f"{enhanced_output.strip()}\nDialogue: {khmer_dialogue}"
-                with st.container(border=True):
-                    st.text(final_prompt_text)
-                st.balloons()
-            else:
-                st.error("Failed to generate an enhanced prompt from the AI.")
+        if enhanced_output:
+            st.subheader("✅ AI Generation Complete!")
+            final_prompt_text = f"{enhanced_output.strip()}\nDialogue: {khmer_dialogue}"
+            with st.container(border=True):
+                st.text(final_prompt_text)
+            st.balloons()
+        else:
+            st.error("Failed to generate an enhanced prompt from the AI.")
 else:
     st.info("Fill in your simple ideas on the left, then click 'Enhance My Ideas' to let the AI expand on them.")
