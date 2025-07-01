@@ -1,15 +1,15 @@
 # ==============================================================================
-# Complete and Correct Code for Prompt.py (v2.0 - OpenAI Compatible)
+# Complete and Correct Code for Prompt.py (v2.1 - Renamed)
 # Using "Focused Studio" UI
 # ==============================================================================
 import streamlit as st
 import time
-from openai import OpenAI, RateLimitError # <-- CHANGED: Import from OpenAI library
+from openai import OpenAI, RateLimitError
 
 # --- Page Configuration (MUST be the first Streamlit command) ---
 st.set_page_config(
     layout="wide",
-    page_title="LDK Ai Prompt",
+    page_title="LDK Prompt", # <-- UPDATED NAME
     page_icon="✨"
 )
 
@@ -36,27 +36,27 @@ def load_css():
     """, unsafe_allow_html=True)
 
 load_css()
-# Secrets for OpenAI-compatible API
 
-AI_API_KEY = "sk-e0b24d8af1fe456a875f3d95186e11b7"
-AI_BASE_URL = "https://api.deepseek.com/v1"
-AI_MODEL_NAME = "deepseek-chat"
+# NOTE: This section is for local testing. In production on Streamlit Cloud,
+# you should remove these lines and use Secrets management.
+# AI_API_KEY = "sk-e0b24d8af1fe456a875f3d95186e11b7"
+# AI_BASE_URL = "https://api.deepseek.com/v1"
+# AI_MODEL_NAME = "deepseek-chat"
 
 # --- API Configuration & Helper Functions ---
 try:
-    # <-- CHANGED: Initialize OpenAI Client using new secrets
+    # Initialize OpenAI Client using Streamlit Secrets
     client = OpenAI(
-        api_key=st.secrets["sk-e0b24d8af1fe456a875f3d95186e11b7"],
-        base_url=st.secrets["https://api.deepseek.com/v1"],
+        api_key=st.secrets["AI_API_KEY"],
+        base_url=st.secrets["AI_BASE_URL"],
     )
 except (FileNotFoundError, KeyError):
-    st.sidebar.error("⚠️ AI_API_KEY, AI_BASE_URL, or AI_MODEL_NAME not found in secrets.")
+    st.sidebar.error("⚠️ AI_API_KEY or AI_BASE_URL not found in secrets.")
 
 # --- ✨ REWRITTEN FUNCTION FOR OPENAI COMPATIBLE APIS ---
 def call_openai_compatible_api(character, setting, lighting, action_emotion, camera, style):
     """Takes simple user inputs and asks the AI to expand them into a structured, cinematic format."""
     
-    # <-- CHANGED: Prompt is now structured into "system" and "user" roles
     system_prompt = """
     Act as a creative film director and script enhancer.
     Based on the user's simple inputs, expand on each category to make it more vivid, detailed, and cinematic.
@@ -84,17 +84,15 @@ def call_openai_compatible_api(character, setting, lighting, action_emotion, cam
     delay = 5
     for i in range(retries):
         try:
-            # <-- CHANGED: API call format is now client.chat.completions.create
             response = client.chat.completions.create(
-                model=st.secrets["deepseek-chat"],
+                model=st.secrets["AI_MODEL_NAME"],
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ]
             )
-            # <-- CHANGED: How the response text is extracted
             return response.choices[0].message.content
-        except RateLimitError as e: # <-- CHANGED: Exception type for rate limits
+        except RateLimitError as e:
             if i < retries - 1:
                 st.warning(f"Rate limit hit. Retrying in {delay} seconds... ({i+1}/{retries})")
                 time.sleep(delay)
@@ -109,8 +107,8 @@ def call_openai_compatible_api(character, setting, lighting, action_emotion, cam
 
 # --- SIDEBAR (Control Panel for "Focused Studio" UI) ---
 with st.sidebar:
-    st.title("✨ AI Video Studio")
-    st.caption("v2.0 - OpenAI Compatible") # <-- CHANGED: Updated version
+    st.title("✨ LDK Prompt") # <-- UPDATED NAME
+    st.caption("v2.1 - OpenAI Compatible") 
     
     with st.form("control_panel_form"):
         st.header("1. Your Simple Ideas")
@@ -134,24 +132,26 @@ with st.sidebar:
 
 
 # --- MAIN CONTENT AREA (Output Zone) ---
-st.header("🎬 AI Enhanced Prompt")
+st.header("🎬 LDK Enhanced Prompt") # <-- UPDATED NAME
 
 if submit_button:
     if not all([character, setting, action_emotion]):
         st.error("Please fill in at least the 'Character', 'Setting', and 'Action & Emotion' fields.")
     else:
-        with st.spinner('✨ The AI is enhancing your ideas...'):
-            # <-- CHANGED: Call the new rewritten function
-            enhanced_output = call_openai_compatible_api(character, setting, lighting, action_emotion, camera, style)
-
-        if enhanced_output:
-            st.subheader("✅ AI Generation Complete!")
-            # <-- CHANGED: Append the dialogue to the AI's structured output
-            final_prompt_text = f"{enhanced_output.strip()}\nDialogue: {khmer_dialogue}"
-            with st.container(border=True):
-                st.text(final_prompt_text)
-            st.balloons()
+        # Check if secrets are loaded
+        if "AI_API_KEY" not in st.secrets or "AI_BASE_URL" not in st.secrets or "AI_MODEL_NAME" not in st.secrets:
+             st.error("Please configure your API Key, Base URL, and Model Name in Streamlit Secrets.")
         else:
-            st.error("Failed to generate an enhanced prompt from the AI.")
+            with st.spinner('✨ The AI is enhancing your ideas...'):
+                enhanced_output = call_openai_compatible_api(character, setting, lighting, action_emotion, camera, style)
+
+            if enhanced_output:
+                st.subheader("✅ AI Generation Complete!")
+                final_prompt_text = f"{enhanced_output.strip()}\nDialogue: {khmer_dialogue}"
+                with st.container(border=True):
+                    st.text(final_prompt_text)
+                st.balloons()
+            else:
+                st.error("Failed to generate an enhanced prompt from the AI.")
 else:
     st.info("Fill in your simple ideas on the left, then click 'Enhance My Ideas' to let the AI expand on them.")
